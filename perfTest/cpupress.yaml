@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpustress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpustress
+  template:
+    metadata:
+      labels:
+        app: cpustress
+    spec:
+      containers:
+      - name: cpustress
+        image: containerstack/cpustress
+        args:
+          - "-c 2"
+          - "--metrics-brief"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 100Mi
+          limits:
+            cpu: 400m
+            memory: 200Mi
