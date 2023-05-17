@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-html-cm
+  name: nginx-xff-html-cm
 data:
   index.html: |
     main page by jacob
@@ -11,7 +11,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-config-cm
+  name: nginx-xff-config-cm
 data:
   nginx.conf: |
     user nginx;
@@ -20,9 +20,13 @@ data:
       worker_connections  10240;
     }
     http {
+      log_format  logs_requested  '$remote_addr - $remote_user [$time_local] "$request" '
+                            '$status $body_bytes_sent "$http_referer" '
+                            '"$http_user_agent" "$request_time" "$upstream_response_time" "$pipe" "$http_x_forwarded_for"';
       server {
         listen       80;
         server_name  localhost;
+        access_log  /var/log/nginx/access.log  logs_requested;
 
         root   /usr/share/nginx/html;
         index  index.html index.htm;
@@ -37,20 +41,20 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-sample
+  name: nginx-xff
 spec:
   selector:
     matchLabels:
-      app: nginx-sample
+      app: nginx-xff
   replicas: 2
   template:
     metadata:
       labels:
-        app: nginx-sample
+        app: nginx-xff
     spec:
       containers:
       - image: nginx:latest
-        name: nginx-sample
+        name: nginx
         ports:
         - containerPort: 80
           protocol: TCP
@@ -65,18 +69,18 @@ spec:
       volumes:
       - name: index
         configMap:
-          name: nginx-html-cm
+          name: nginx-xff-html-cm
       - name: config
         configMap:
-          name: nginx-config-cm
+          name: nginx-xff-config-cm
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-sample-svc
+  name: nginx-xff-svc
 spec:
   selector:
-    app: nginx-sample
+    app: nginx-xff
   ports:
   - protocol: TCP
     port: 80
