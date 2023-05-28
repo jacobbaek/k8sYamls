@@ -6,14 +6,14 @@ metadata:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-app
+  name: nginx-pod
   namespace: ingresstest
   labels:
-    app: nginx-app
+    app: nginx-pod
 spec:
   containers:
   - image: nginx
-    name: nginx-image
+    name: nginx
     ports:
     - containerPort: 80
       protocol: TCP
@@ -27,11 +27,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-app-svc
+  name: nginx-pod-svc
   namespace: ingresstest
 spec:
   selector:
-    app: nginx-app
+    app: nginx-pod
   ports:
   - protocol: TCP
     port: 80
@@ -40,7 +40,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nginx-ext-ingress
+  name: nginx-pod-ingress
   namespace: ingresstest
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
@@ -51,10 +51,10 @@ spec:
   rules:
   - http:
       paths:
-      - path: /nginxapp
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: nginx-app-svc
+            name: nginx-pod-svc
             port:
               number: 80
