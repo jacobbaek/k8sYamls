@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: init-node-script
+spec:
+  selector:
+    matchLabels:
+      job: init-node-script
+  template:
+    metadata:
+      labels:
+        job: init-node-script
+    spec:
+      hostPID: true   
+      hostNetwork: true   
+      containers:
+      - image: alpine:latest
+        name: alpine
+        securityContext:
+          privileged: true
+        command: ["/bin/sh"]
+        args: ["-c", "if [[ ! $(grep \"test.com\" /run/systemd/resolve/resolv.conf) ]]; then sed -i '$ s/$/ test.com/' /run/systemd/resolve/resolv.conf; fi && tail -f /dev/null"]
+        volumeMounts:
+        - name: resolvconf
+          mountPath: /run/systemd/resolve
+      volumes:
+      - name: resolvconf
+        hostPath:
+          path: /run/systemd/resolve
