@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html-cm
+data:
+  index.php: |
+    <html>  
+    <body>
+      <p>main page by jacob</p>
+      <p><?php echo "hostname is:".gethostname(); ?></p>
+    </body>
+    </html>
+  test.html: |
+    test page by jacob
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config-cm
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes  1;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      log_format   main '$remote_addr - $remote_user [$time_local]  $status '
+                        '"$request" $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+      access_log   logs/access.log  main;
+
+      server {
+        listen       8080;
+        server_name  localhost;
+
+        root   /usr/share/nginx/html;
+        index  index.php index.html index.htm;
+
+        # Pass the PHP scripts to PHP-FPM listening on php-fpm.sock
+        location ~ \.php$ {
+            try_files $uri =404;
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+            fastcgi_pass unix:/run/php-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+            fastcgi_index index.php;
+            include fastcgi_params;
+        }
+
+        # Set the cache-control headers on assets to cache for 5 days
+        location ~* \.(jpg|jpeg|gif|png|css|js|ico|xml)$ {
+            expires 5d;
+        }
+
+        location ^~ /test(.*) {
+          alias  /usr/share/nginx/html;
+          index  test.html;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-sample
+spec:
+  selector:
+    matchLabels:
+      app: nginx-sample
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx-sample
+    spec:
+      containers:
+      - image: trafex/php-nginx:latest
+        name: nginx-sample
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+          - name: index
+            mountPath: /usr/share/nginx/html
+          - name: config
+            mountPath: /etc/nginx/nginx.conf
+            subPath: nginx.conf
+      nodeSelector:
+        kubernetes.io/os: linux
+      volumes:
+      - name: index
+        configMap:
+          name: nginx-html-cm
+      - name: config
+        configMap:
+          name: nginx-config-cm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-sample-svc
+spec:
+  selector:
+    app: nginx-sample
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
