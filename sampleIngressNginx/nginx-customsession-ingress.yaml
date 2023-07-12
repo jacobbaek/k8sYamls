@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sessiontest
+spec:
+  selector:
+    matchLabels:
+      app: sessiontest
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: sessiontest
+    spec:
+      containers:
+      - image: dubaek/sessiontest:latest
+        name: sessiontest
+        ports:
+        - containerPort: 8090
+          protocol: TCP
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sessiontest-svc
+spec:
+  selector:
+    app: sessiontest
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8090
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sessiontest-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/affinity-mode: persistent
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sessiontest-svc
+            port:
+              number: 80
