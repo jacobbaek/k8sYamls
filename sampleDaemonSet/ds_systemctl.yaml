@@ -1,0 +1,49 @@
+# this is not official daemonset and it is not supported by company.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: aa-disable
+spec:
+  selector:
+    matchLabels:
+      name: aa-disable
+  template:
+    metadata:
+      labels:
+        name: aa-disable
+    spec:
+      hostPID: true
+      hostNetwork: true
+          #!/bin/bash
+      containers:
+      - name: nsenter
+        image: docker.io/library/alpine
+        command:
+        - nsenter
+        - --target
+        - "1"
+        - --mount
+        - --uts
+        - --ipc
+        - --net
+        - --pid
+        - --
+        - sh
+        - -c
+        - |
+          #!/bin/bash
+          systemctl disable apparmor --now
+          while true; do systemctl is-active apparmor; sleep 60; done
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: usr-sbin
+          mountPath: /usr/sbin
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - name: usr-sbin
+        hostPath:
+          path: /usr/sbin
+          type: Directory
