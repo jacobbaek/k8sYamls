@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dnslogger-script-configmap
+data:
+  dnslogger.sh: |
+    $!/bin/bash
+    DLST=$(env | grep DOMAIN | awk -F '=' '{print $2}')
+
+    while true;
+    do
+      echo $(TZ=Asia/Seoul date +"%Y-%m-%d %H:%M:%S %Z");
+      for domain in $DLST; do
+        echo "  ${domain} : $(dig +short +time=1 +tries=1 ${domain})";
+      done
+      sleep 0.5;
+    done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dnslogger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dnslogger
+  template:
+    metadata:
+      labels:
+        app: dnslogger
+    spec:
+      containers:
+      - name: dnsutils
+        image: registry.k8s.io/e2e-test-images/agnhost:2.39
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: DOMAIN1
+            value: nginx-sample-svc.default.svc.cluster.local
+          - name: DOMAIN2
+            value: google.com
+        command: ["/bin/sh"]
+        args: ["-c", "/script/dnslogger.sh"]
+        volumeMounts:
+          - mountPath: /script
+            name: dnslogger-script
+      volumes:
+      - name: dnslogger-script
+        configMap:
+          name: dnslogger-script-configmap
+          defaultMode: 0744
+      restartPolicy: Always
