@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingresstest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: approuting
+  namespace: ingresstest
+  labels:
+    app: approuting
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      periodSeconds: 3
+      timeoutSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: approuting-svc
+  namespace: ingresstest
+spec:
+  selector:
+    app: approuting
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: approuting-ing
+  namespace: ingresstest
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - http: jacobtestcert.kr
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: approuting-svc
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - jacobtestcert.kr
+    secretName: keyvault-approuting-ing
