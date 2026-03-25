@@ -49,7 +49,8 @@ metadata:
 spec:
   ingressClassName: webapprouting.kubernetes.azure.com
   rules:
-  - http: jacobtestcert.kr
+  - host: jacobtestcert.kr
+    http:
       paths:
       - path: /
         pathType: Prefix
