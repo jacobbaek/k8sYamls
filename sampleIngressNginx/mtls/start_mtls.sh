@@ -133,6 +133,7 @@ metadata:
     nginx.ingress.kubernetes.io/auth-tls-verify-depth: "2"
     nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
 spec:
+  #ingressClassName: webapprouting.kubernetes.azure.com
   ingressClassName: nginx
   tls:
   - hosts:
