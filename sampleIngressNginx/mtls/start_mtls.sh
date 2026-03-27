@@ -71,6 +71,7 @@ openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
 
 ### Generates tls secrets
 echo "[INFO] tls secrets"
+kubectl create ns $NS
 kubectl -n $NS create secret tls demo-server-tls \
   --cert=server.crt \
   --key=server.key
@@ -82,11 +83,6 @@ kubectl -n $NS create secret generic demo-client-ca \
 echo "[INFO] deploy real service"
 
 cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $NS
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
